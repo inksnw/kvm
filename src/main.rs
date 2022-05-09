@@ -1,7 +1,11 @@
 #[macro_use]
 extern crate rocket;
 
+use std::error::Error;
+
+use rocket::http::Method;
 use rocket::response::content;
+use rocket_cors::{AllowedOrigins, CorsOptions};
 use virt::connect;
 use virt::connect::Connect;
 
@@ -73,8 +77,23 @@ fn get_conn() -> Connect {
     return conn;
 }
 
-#[launch]
-fn rocket() -> _ {
-    rocket::build().mount("/", routes![list])
+#[rocket::main]
+async fn main() -> Result<(), Box<dyn Error>> {
+    let cors = CorsOptions::default()
+        .allowed_origins(AllowedOrigins::all())
+        .allowed_methods(
+            vec![Method::Get, Method::Post, Method::Patch]
+                .into_iter()
+                .map(From::from)
+                .collect(),
+        )
+        .allow_credentials(true)
+        .to_cors()?;
+    rocket::build()
+        .mount("/", routes![list])
+        .attach(cors)
+        .launch()
+        .await?;
+    Ok(())
 }
 
