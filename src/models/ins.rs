@@ -14,6 +14,6 @@ pub struct InsModel {
 #[derive(Serialize)]
 pub struct FrontResult {
     pub msg: String,
-    pub code: u32,
+    pub code: i32,
 
 }
