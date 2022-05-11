@@ -1,10 +1,12 @@
+extern crate core;
 #[macro_use]
 extern crate rocket;
+
 
 use std::error::Error;
 
 use rocket::http::Method;
-use rocket::response::content;
+use rocket::response::content::Json;
 use rocket_cors::{AllowedOrigins, CorsOptions};
 use virt::connect;
 use virt::connect::Connect;
@@ -24,7 +26,7 @@ fn disconnect(mut conn: Connect) {
 }
 
 #[get("/close/<name>")]
-fn close(name: &str) -> content::Json<String> {
+fn close(name: &str) -> Json<String> {
     let conn = get_conn();
 
     let dom = Domain::lookup_by_name(&conn, name).unwrap();
@@ -35,27 +37,35 @@ fn close(name: &str) -> content::Json<String> {
         code: 200,
     };
 
-    content::Json(serde_json::to_string(&v).unwrap())
+    Json(serde_json::to_string(&v).unwrap())
 }
 
 #[get("/open/<name>")]
-fn open(name: &str) -> content::Json<String> {
+fn open(name: &str) -> Json<String> {
     let conn = get_conn();
 
-    let dom = Domain::lookup_by_name(&conn, name).unwrap();
-
-    dom.create_with_flags(0).unwrap();
-
-    let v = FrontResult {
-        msg: "ok".to_string(),
-        code: 200,
+    let dom: Domain = match Domain::lookup_by_name(&conn, name) {
+        Ok(dom) => dom,
+        Err(err) => return rv(err.message, 400)
     };
-    content::Json(serde_json::to_string(&v).unwrap())
+
+    return match dom.create_with_flags(0) {
+        Ok(_) => rv("开机成功".to_string(), 200),
+        Err(err) => rv(err.message, 200)
+    };
+}
+
+pub fn rv(msg: String, code: u32) -> Json<String> {
+    let v = FrontResult {
+        msg,
+        code,
+    };
+    Json(serde_json::to_string(&v).unwrap())
 }
 
 
 #[get("/")]
-fn list() -> content::Json<String> {
+fn list() -> Json<String> {
     let flags = connect::VIR_CONNECT_LIST_DOMAINS_ACTIVE | connect::VIR_CONNECT_LIST_DOMAINS_INACTIVE;
 
     let conn = get_conn();
@@ -86,7 +96,7 @@ fn list() -> content::Json<String> {
             }
         }
     }
-    content::Json(serde_json::to_string(&v).unwrap())
+    Json(serde_json::to_string(&v).unwrap())
 }
 
 fn get_conn() -> Connect {
