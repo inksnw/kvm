@@ -10,3 +10,10 @@ pub struct InsModel {
     pub cpu: u32,
     pub active: bool,
 }
+
+#[derive(Serialize)]
+pub struct FrontResult {
+    pub msg: String,
+    pub code: u32,
+
+}

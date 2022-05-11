@@ -8,7 +8,9 @@ use rocket::response::content;
 use rocket_cors::{AllowedOrigins, CorsOptions};
 use virt::connect;
 use virt::connect::Connect;
+use virt::domain::Domain;
 
+use models::FrontResult;
 use models::InsModel;
 
 mod models;
@@ -20,6 +22,22 @@ fn disconnect(mut conn: Connect) {
     }
     println!("Disconnected from hypervisor");
 }
+
+#[get("/close/<name>")]
+fn close(name: &str) -> content::Json<String> {
+    let conn = get_conn();
+
+    let dom = Domain::lookup_by_name(&conn, name).unwrap();
+
+    let ss = dom.shutdown().unwrap();
+    let v = FrontResult {
+        msg: ss.to_string(),
+        code: 200,
+    };
+
+    content::Json(serde_json::to_string(&v).unwrap())
+}
+
 
 #[get("/")]
 fn list() -> content::Json<String> {
@@ -34,6 +52,7 @@ fn list() -> content::Json<String> {
             println!("There are {} active and {} inactive domains", num_active_domains, num_inactive_domains);
         }
     }
+
     if let Ok(doms) = conn.list_all_domains(flags) {
         for dom in doms {
             let id = dom.get_id().unwrap_or(0);
@@ -71,7 +90,7 @@ fn get_conn() -> Connect {
         Ok(u) => println!("Connected to hypervisor at '{}'", u),
         Err(e) => {
             disconnect(conn);
-            panic!("Failed to get URI for hypervisor connection: code {}, message: {}", e.code, e.message);
+            panic!("Failed to get URI for hypervisor connection:  code {}, message: {}", e.code, e.message);
         }
     };
     return conn;
@@ -90,7 +109,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .allow_credentials(true)
         .to_cors()?;
     rocket::build()
-        .mount("/", routes![list])
+        .mount("/", routes![list,close])
         .attach(cors)
         .launch()
         .await?;
