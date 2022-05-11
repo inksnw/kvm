@@ -38,6 +38,21 @@ fn close(name: &str) -> content::Json<String> {
     content::Json(serde_json::to_string(&v).unwrap())
 }
 
+#[get("/open/<name>")]
+fn open(name: &str) -> content::Json<String> {
+    let conn = get_conn();
+
+    let dom = Domain::lookup_by_name(&conn, name).unwrap();
+
+    dom.create_with_flags(0).unwrap();
+
+    let v = FrontResult {
+        msg: "ok".to_string(),
+        code: 200,
+    };
+    content::Json(serde_json::to_string(&v).unwrap())
+}
+
 
 #[get("/")]
 fn list() -> content::Json<String> {
@@ -109,7 +124,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .allow_credentials(true)
         .to_cors()?;
     rocket::build()
-        .mount("/", routes![list,close])
+        .mount("/", routes![list,close,open])
         .attach(cors)
         .launch()
         .await?;
