@@ -1,4 +1,3 @@
-extern crate core;
 #[macro_use]
 extern crate rocket;
 
@@ -24,12 +23,12 @@ fn close(name: &str) -> Json<String> {
 
     let dom: Domain = match Domain::lookup_by_name(&conn, name) {
         Ok(dom) => dom,
-        Err(err) => return rv(err.message, 400)
+        Err(err) => return rv(&err.message, 400)
     };
 
     return match dom.shutdown() {
-        Ok(_) => rv("已发送关机命令".to_string(), 200),
-        Err(err) => rv(err.message, err.code)
+        Ok(_) => rv("已发送关机命令", 200),
+        Err(err) => rv(&err.message, err.code)
     };
 }
 
@@ -39,18 +38,18 @@ fn open(name: &str) -> Json<String> {
 
     let dom: Domain = match Domain::lookup_by_name(&conn, name) {
         Ok(dom) => dom,
-        Err(err) => return rv(err.message, 400)
+        Err(err) => return rv(&err.message, 400)
     };
 
     return match dom.create_with_flags(0) {
-        Ok(_) => rv("开机成功".to_string(), 200),
-        Err(err) => rv(err.message, 200)
+        Ok(_) => rv("开机成功", 200),
+        Err(err) => rv(&err.message, 200)
     };
 }
 
-pub fn rv(msg: String, code: i32) -> Json<String> {
+pub fn rv(msg: &str, code: i32) -> Json<String> {
     let v = FrontResult {
-        msg,
+        msg: String::from(msg),
         code,
     };
     Json(serde_json::to_string(&v).unwrap())
