@@ -48,10 +48,8 @@ fn open(name: &str) -> Json<String> {
 }
 
 pub fn rv(msg: &str, code: i32) -> Json<String> {
-    let v = FrontResult {
-        msg: String::from(msg),
-        code,
-    };
+    let v = FrontResult::new(msg, code);
+    println!("{} ", v.haha());
     Json(serde_json::to_string(&v).unwrap())
 }
 
@@ -64,7 +62,9 @@ fn list() -> Json<String> {
 
     let doms = get_conn().list_all_domains(flags).unwrap();
 
+    let mut i = 0;
     for dom in doms {
+        i = i + 1;
         let id = dom.get_id().unwrap_or(0);
         let name = dom.get_name().unwrap_or_else(|_| String::from("no-name"));
         let active = dom.is_active().unwrap_or(false);
@@ -76,6 +76,7 @@ fn list() -> Json<String> {
             cpu: dinfo.nr_virt_cpu,
             mem: dinfo.memory / 1024 / 1024,
             active,
+            key: i,
         };
         v.push(tmp)
     }
