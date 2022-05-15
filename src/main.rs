@@ -6,6 +6,9 @@ use std::error::Error;
 
 use rocket::http::Method;
 use rocket::response::content::Json;
+use rocket::response::stream::{Event, EventStream};
+
+use rocket::tokio::time::{self, Duration};
 use rocket_cors::{AllowedOrigins, CorsOptions};
 use virt::connect;
 use virt::connect::Connect;
@@ -27,10 +30,23 @@ fn close(name: &str) -> Json<String> {
         Err(err) => return rv(&err.message, 400)
     };
 
+
     return match dom.shutdown() {
         Ok(_) => rv("已发送关机命令", 200),
         Err(err) => rv(&err.message, err.code)
     };
+}
+
+
+#[get("/events")]
+fn events() -> EventStream![] {
+    EventStream! {
+        let mut interval = time::interval(Duration::from_secs(1));
+        for i in 0..100{
+             yield Event::data(format!("{}", i));
+            interval.tick().await;
+        }
+    }
 }
 
 #[get("/open/<name>")]
@@ -43,7 +59,7 @@ fn open(name: &str) -> Json<String> {
     };
 
     return match dom.create_with_flags(0) {
-        Ok(_) => rv("开机成功", 200),
+        Ok(_) => rv("已发送开机命令", 200),
         Err(err) => rv(&err.message, 200)
     };
 }
@@ -113,7 +129,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .allow_credentials(true)
         .to_cors()?;
     rocket::build()
-        .mount("/", routes![list,close,open])
+        .mount("/", routes![list,close,open,events])
         .attach(cors)
         .launch()
         .await?;
