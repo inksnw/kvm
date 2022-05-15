@@ -10,6 +10,7 @@ use rocket_cors::{AllowedOrigins, CorsOptions};
 use virt::connect;
 use virt::connect::Connect;
 use virt::domain::Domain;
+use virt::domain::DomainState;
 
 use models::FrontResult;
 use models::InsModel;
@@ -53,6 +54,14 @@ pub fn rv(msg: &str, code: i32) -> Json<String> {
     Json(serde_json::to_string(&v).unwrap())
 }
 
+fn get_state(state: DomainState) -> String {
+    match state {
+        1 => "运行中".to_string(),
+        5 => "已关机".to_string(),
+        _ => "未定义".to_string()
+    }
+}
+
 
 #[get("/")]
 fn list() -> Json<String> {
@@ -71,7 +80,7 @@ fn list() -> Json<String> {
         let dinfo = dom.get_info().unwrap();
         let tmp = InsModel {
             ins_id: id,
-            state: dinfo.state,
+            state: get_state(dinfo.state),
             ins_name: name,
             cpu: dinfo.nr_virt_cpu,
             mem: dinfo.memory / 1024 / 1024,
