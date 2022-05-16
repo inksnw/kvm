@@ -3,11 +3,11 @@ extern crate rocket;
 
 
 use std::error::Error;
+use std::fs;
 
 use rocket::http::Method;
 use rocket::response::content::Json;
 use rocket::response::stream::{Event, EventStream};
-
 use rocket::tokio::time::{self, Duration};
 use rocket_cors::{AllowedOrigins, CorsOptions};
 use virt::connect;
@@ -48,6 +48,27 @@ fn events() -> EventStream![] {
         }
     }
 }
+
+#[get("/clone/<name>")]
+fn clone(name: &str) -> Json<String> {
+    let conn = get_conn();
+
+    let dom: Domain = match Domain::lookup_by_name(&conn, name) {
+        Ok(dom) => dom,
+        Err(err) => return rv(&err.message, 400)
+    };
+    // let xml = dom.get_xml_desc(0).unwrap();
+    // println!("{}", xml);
+
+    let contents = fs::read_to_string("/Users/inksnw/Desktop/kvm/src/a.xml")
+        .expect("Something went wrong reading the file");
+    Domain::define_xml(&conn, &*contents);
+
+
+
+    return rv("已发克隆命令", 200);
+}
+
 
 #[get("/open/<name>")]
 fn open(name: &str) -> Json<String> {
@@ -129,7 +150,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .allow_credentials(true)
         .to_cors()?;
     rocket::build()
-        .mount("/", routes![list,close,open,events])
+        .mount("/", routes![list,close,open,events,clone])
         .attach(cors)
         .launch()
         .await?;
